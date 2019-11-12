@@ -126,10 +126,12 @@ func (self *downloader) done() {
 	self.socketList = make([]*oneClient, 0)
 
 
+	self.fileLock.Lock()
 	if self.file != nil {
 		self.file.Close()
 	}
 	self.file = nil
+	self.fileLock.Unlock()
 
 	self.onDone.Broadcast()
 }
@@ -146,8 +148,11 @@ func (self *downloader) writeTrunk(conn *oneClient, msg *proto.OneChunk) {
 		if n != len(msg.Data) {
 			log.Warnf("写文件错误:%d, %d", n, len(msg.Data))
 		}
+
 		b := make([]byte, n)
+		self.fileLock.Lock()
 		self.file.ReadAt(b, offset)
+		self.fileLock.Unlock()
 
 		if !bytes.Equal( proto.Md5Value(b), msg.Md5Value ) {
 			log.Warnf("写文件错误:%d, %d", offset, msg.ChunkId)
