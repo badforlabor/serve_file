@@ -83,10 +83,10 @@ func CompareFile(file1, file2 string) bool {
 			}
 
 			if n1 < count {
-				if !equal {
-					break
+				if equal {
+					fmt.Println("两个文件相同！")
 				}
-				fmt.Println("两个文件相同！")
+				break
 			}
 		}
 	}
