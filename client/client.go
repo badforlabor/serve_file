@@ -160,5 +160,8 @@ func (self *oneClient) Test() {
 	self.testMode = true
 	self.testFileName = "test.pak"
 
+	self.sendMsg(&p2.CommonCommand{Cmd:"list"})
+	time.Sleep(time.Second)
+
 	self.reqGet(1, self.testFileName)
 }
