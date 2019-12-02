@@ -13,13 +13,14 @@ import (
 
 func main() {
 
-	_fileManager := &fileManager{}
+	_fileManager := &FileManager{}
 	_fileManager.start()
 
 	_server := fileServer{}
 	_server._fileManager = _fileManager
 	_server.Start(fmt.Sprintf(":%d", proto.Port))
-	_server.Serve("D:/workspace3/psl/PSL/Saved/StagedBuilds/WindowsNoEditor/PSLVR/Content/Paks/PSLVR-WindowsNoEditor.pak")
+	//_server.Serve("D:/workspace3/psl/PSL/Saved/StagedBuilds/WindowsNoEditor/PSLVR/Content/Paks/PSLVR-WindowsNoEditor.pak")
+	_server.Serve("F:/workspace2/nomanscity-eng/CityLevel_Finish/Content/Movies/mp4.mp4")
 
 	var multiServer []*fileServer
 	for i:=0; i<proto.DownloadThreadCount; i++ {

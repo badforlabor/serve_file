@@ -40,7 +40,7 @@ type fileServer struct {
 	queue cellnet.EventQueue
 	peer cellnet.GenericPeer
 
-	_fileManager *fileManager
+	_fileManager *FileManager
 }
 
 func (self *fileServer) Serve(filepath string) {
@@ -95,6 +95,7 @@ func (self *fileServer) onMsg(ev cellnet.Event) {
 
 	case *p2.OneChunk:
 		// 客户端请求这个chunk的内容
+		self._fileManager.SingleLock.Lock()
 		var resp = *msg
 		if len(msg.Data) == 0 {
 			data := self._fileManager.getRaw(msg.FileId, resp.ConstChunkDataSize, int64(msg.ChunkId * msg.ConstChunkDataSize))
@@ -102,12 +103,14 @@ func (self *fileServer) onMsg(ev cellnet.Event) {
 				resp.Data = data
 				resp.Md5Value = p2.Md5Value(resp.Data)
 				ev.Session().Send(&resp)
+				self._fileManager.debugWriteRaw(resp)
 			} else {
 				log.Warnf("无法获取文件：%d, %d", msg.FileId, msg.ChunkId)
 			}
 		} else {
 			log.Warnf("服务器收到信息错误! %d, %d", msg.FileId, msg.ChunkId)
 		}
+		self._fileManager.SingleLock.Unlock()
 
 	case *p2.CommonCommand:
 		log.Infof("%s", msg.Cmd, msg.Param1)
@@ -116,6 +119,9 @@ func (self *fileServer) onMsg(ev cellnet.Event) {
 			var filelist p2.FileListResp
 			filelist.Files = append(filelist.Files, self._fileManager.fileList...)
 			ev.Session().Send(&filelist)
+
+		case "done":
+			self._fileManager.debugDone()
 
 		case "get":
 			fileidx, _ := strconv.Atoi(msg.Param1)

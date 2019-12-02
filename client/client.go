@@ -15,6 +15,7 @@ import (
 	"github.com/davyxu/cellnet/proc"
 	_ "github.com/davyxu/cellnet/proc/tcp"
 	"github.com/davyxu/golog"
+	"os"
 	"reflect"
 	p2 "serve_file/proto"
 	"time"
@@ -34,6 +35,11 @@ type oneClient struct {
 	pendingFile string
 
 	onConn func(*oneClient)
+
+	savedServerFiles []string
+
+	testMode bool
+	testFileName string
 }
 func NewClient() IFileClient {
 	return newClient(nil)
@@ -111,6 +117,7 @@ func (self *oneClient) onMsg(ev cellnet.Event) {
 		for i, v := range msg.Files {
 			fmt.Printf("    [%d]:%s\n", i+1, v)
 		}
+		self.savedServerFiles = msg.Files
 
 	default:
 		log.Infof("unknown msg: %s", reflect.TypeOf(ev.Message()).Name())
@@ -134,4 +141,24 @@ func (self *oneClient) reqGet(idx int, topath string) {
 }
 func (self *oneClient) onDownloadDone() {
 	self.pendingFile = ""
+
+	if self.testMode {
+		self.sendMsg(&p2.CommonCommand{Cmd:"done"})
+		time.Sleep(time.Second)
+
+		// 比较文件
+		p2.CompareFile("debug.pak", self.testFileName)
+		time.Sleep(time.Second * 10)
+		p2.CompareFile("debug.pak", self.savedServerFiles[0])
+		time.Sleep(time.Second * 10)
+		os.Remove(self.testFileName)
+
+		self.Test()
+	}
+}
+func (self *oneClient) Test() {
+	self.testMode = true
+	self.testFileName = "test.pak"
+
+	self.reqGet(1, self.testFileName)
 }
