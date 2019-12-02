@@ -20,7 +20,7 @@ import (
 const (
 	ChunkSize           = 1024 * 32
 	Port                = 10110
-	DownloadThreadCount = 1
+	DownloadThreadCount = 10
 )
 
 /**************************************************************************/

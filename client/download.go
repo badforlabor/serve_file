@@ -49,6 +49,7 @@ func (self *downloader) download(filename string, info proto.FileChunkInfo) {
 	// 如果文件大小不一样，那么删掉，重新创建，并填充各个块的数据为0
 	fs, e := self.file.Stat()
 	if e != nil || fs.Size() != self.info.FileSize {
+		self.file.Sync()
 		self.file.Close()
 		os.Remove(filename)
 
@@ -118,6 +119,8 @@ func (self *downloader) done() {
 	log.Infof("下载完毕:%s", self.fileName)
 	if self.info.HashValue != proto.HashFile(self.fileName) {
 		log.Infof("    hash value not equal:%s", self.fileName)
+	} else {
+		log.Infof("    hash value equal!")
 	}
 
 	for _, v := range self.socketList {
@@ -128,6 +131,7 @@ func (self *downloader) done() {
 
 	self.fileLock.Lock()
 	if self.file != nil {
+		self.file.Sync()
 		self.file.Close()
 	}
 	self.file = nil
@@ -140,6 +144,7 @@ func (self *downloader) writeTrunk(conn *oneClient, msg *proto.OneChunk) {
 		offset := int64(msg.ChunkId * msg.ConstChunkDataSize)
 		self.fileLock.Lock()
 		n, err := self.file.WriteAt(msg.Data, offset)
+		self.file.Sync()
 		self.fileLock.Unlock()
 
 		if err != nil {
@@ -189,11 +194,11 @@ func (self *downloader) reqSendChunk(conn *oneClient) {
 		return
 	}
 
-	atomic.AddInt32(&self.chunkReqCount, -1)
+	var id = atomic.AddInt32(&self.chunkReqCount, -1)
 
 	var resp proto.OneChunk
 	resp.FileId = int32(self.info.FileId)
 	resp.ConstChunkDataSize = proto.ChunkSize
-	resp.ChunkId = int32(self.chunkList[self.chunkReqCount])
+	resp.ChunkId = int32(self.chunkList[id])
 	conn.reqChunk(&resp)
 }

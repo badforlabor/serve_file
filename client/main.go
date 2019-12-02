@@ -9,6 +9,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/davyxu/golog"
 	"os"
 	"serve_file/proto"
 	"strconv"
@@ -16,6 +17,15 @@ import (
 )
 
 func main() {
+	golog.SetOutputToFile("log/client.log", golog.OutputFileOption{
+		MaxFileSize: 1000,
+	})
+
+	golog.VisitLogger(".*", func(logger *golog.Logger) bool {
+		logger.SetLevel(golog.Level_Info)
+		return true
+	})
+
 	c := newClient(nil)
 	c.OpenClient(fmt.Sprintf(":%d", proto.Port))
 
@@ -33,6 +43,10 @@ func main() {
 				idx, _ := strconv.Atoi( cmds[1])
 				c.reqGet(idx, cmds[2])
 			}
+		} else if cmds[0] == "done" {
+			c.sendMsg(&proto.CommonCommand{Cmd:cmds[0]})
+		} else if cmds[0] == "test" {
+			c.Test()
 		}
 	})
 
