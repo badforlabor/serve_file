@@ -13,3 +13,10 @@
 
 .idea
 *.exe
+
+.idea/
+log/
+result/
+
+debug*
+*.pak

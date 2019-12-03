@@ -95,14 +95,13 @@ func (self *fileServer) onMsg(ev cellnet.Event) {
 
 	case *p2.OneChunk:
 		// 客户端请求这个chunk的内容
-		self._fileManager.SingleLock.Lock()
+		//self._fileManager.SingleLock.Lock()
 		var resp = *msg
 		if len(msg.Data) == 0 {
 			data := self._fileManager.getRaw(msg.FileId, resp.ConstChunkDataSize, int64(msg.ChunkId * msg.ConstChunkDataSize))
 			if data != nil {
 				resp.Data = data
 				resp.Md5Value = p2.Md5Value(resp.Data)
-				ev.Session().Send(&resp)
 				self._fileManager.debugWriteRaw(resp)
 			} else {
 				log.Warnf("无法获取文件：%d, %d", msg.FileId, msg.ChunkId)
@@ -110,7 +109,8 @@ func (self *fileServer) onMsg(ev cellnet.Event) {
 		} else {
 			log.Warnf("服务器收到信息错误! %d, %d", msg.FileId, msg.ChunkId)
 		}
-		self._fileManager.SingleLock.Unlock()
+		ev.Session().Send(&resp)
+		//self._fileManager.SingleLock.Unlock()
 
 	case *p2.CommonCommand:
 		log.Infof("%s", msg.Cmd, msg.Param1)
@@ -128,6 +128,7 @@ func (self *fileServer) onMsg(ev cellnet.Event) {
 			if fileidx >= 0 && fileidx < len(self._fileManager.fileList) {
 				var fileinfo p2.FileChunkInfo
 				var filename = self._fileManager.fileList[fileidx]
+				self._fileManager.beforeDownfile(fileidx)
 				file, err := os.Stat(filename)
 				if err == nil {
 					fileinfo.FileId = fileidx

@@ -8,13 +8,24 @@ package main
 
 import (
 	"fmt"
+	"github.com/davyxu/golog"
 	"serve_file/proto"
 )
 
 func main() {
+	golog.SetOutputToFile("log/server.log", golog.OutputFileOption{
+		MaxFileSize: 1000,
+	})
+
+	log.SetLevel(golog.Level_Info)
+	golog.VisitLogger(".*", func(logger *golog.Logger) bool {
+		logger.SetLevel(golog.Level_Info)
+		return true
+	})
 
 	_fileManager := &FileManager{}
 	_fileManager.start()
+	//_fileManager.bDoDebug = true
 
 	_server := fileServer{}
 	_server._fileManager = _fileManager

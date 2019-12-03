@@ -15,6 +15,7 @@ import (
 	"github.com/davyxu/cellnet/proc"
 	_ "github.com/davyxu/cellnet/proc/tcp"
 	"github.com/davyxu/golog"
+	"golib/ultraio"
 	"os"
 	"reflect"
 	p2 "serve_file/proto"
@@ -74,8 +75,6 @@ func (self *oneClient) OpenClient(addr string) {
 
 	// 事件队列开始循环
 	queue.StartLoop()
-
-	log.Infof("Ready to chat!")
 }
 
 func (self *oneClient) sendMsg(msg interface{}) {
@@ -111,6 +110,10 @@ func (self *oneClient) onMsg(ev cellnet.Event) {
 	case *p2.OneChunk:
 		if len(msg.Data) > 0 {
 			self.worker.writeTrunk(self, msg)
+		} else {
+			log.Warnf("下载trunk失败", msg.ChunkId)
+			// 重新再获取一下，此时服务器出错了，不能再次请求
+			// self.reqChunk(msg)
 		}
 
 	case *p2.FileListResp:
@@ -142,23 +145,39 @@ func (self *oneClient) reqGet(idx int, topath string) {
 func (self *oneClient) onDownloadDone() {
 	self.pendingFile = ""
 
-	if self.testMode {
+	go func() {
 		self.sendMsg(&p2.CommonCommand{Cmd:"done"})
 		time.Sleep(time.Second)
 
-		// 比较文件
-		p2.CompareFile("debug.pak", self.testFileName)
-		time.Sleep(time.Second * 10)
-		p2.CompareFile("debug.pak", self.savedServerFiles[0])
-		time.Sleep(time.Second * 10)
-		os.Remove(self.testFileName)
+		if self.testMode {
 
-		self.Test()
-	}
+			// 比较文件
+			var b = p2.CompareFile("debug.pak", self.testFileName)
+			ultraio.AppendFile("result.txt", fmt.Sprintf("比较文件[%s][%s], 结果:%t\n", "debug.pak", self.testFileName, b))
+			time.Sleep(time.Second * 1)
+
+			b = p2.CompareFile("debug.pak", self.savedServerFiles[0])
+			ultraio.AppendFile("result.txt", fmt.Sprintf("比较文件[%s][%s], 结果:%t\n\n\n", "debug.pak", self.savedServerFiles[0], b))
+			time.Sleep(time.Second * 1)
+
+			var err = os.Remove(self.testFileName)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+			err = os.Remove("debug.pak")
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+			time.Sleep(time.Second * 3)
+
+			self.Test()
+		}
+	}()
 }
 func (self *oneClient) Test() {
 	self.testMode = true
 	self.testFileName = "test.pak"
+	ultraio.AppendFile("result.txt", fmt.Sprintf("start test...\n"))
 
 	self.sendMsg(&p2.CommonCommand{Cmd:"list"})
 	time.Sleep(time.Second)

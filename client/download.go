@@ -194,11 +194,11 @@ func (self *downloader) reqSendChunk(conn *oneClient) {
 		return
 	}
 
-	atomic.AddInt32(&self.chunkReqCount, -1)
+	var id = atomic.AddInt32(&self.chunkReqCount, -1)
 
 	var resp proto.OneChunk
 	resp.FileId = int32(self.info.FileId)
 	resp.ConstChunkDataSize = proto.ChunkSize
-	resp.ChunkId = int32(self.chunkList[self.chunkReqCount])
+	resp.ChunkId = int32(self.chunkList[id])
 	conn.reqChunk(&resp)
 }

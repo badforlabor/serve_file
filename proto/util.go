@@ -12,7 +12,9 @@ import (
 	"fmt"
 	"github.com/schollz/croc/v6/src/utils"
 	"io"
+	"io/ioutil"
 	"os"
+	"strconv"
 )
 
 func HashFile(fullpath string) string {
@@ -40,6 +42,9 @@ func Md5Value(b []byte) []byte {
 
 // 比较文件
 func CompareFile(file1, file2 string) bool {
+	return CompareFileDetail(file1, file2, false)
+}
+func CompareFileDetail(file1, file2 string, detail bool) bool {
 	equal := true
 
 	f1, err1 := os.Open(file1)
@@ -78,6 +83,12 @@ func CompareFile(file1, file2 string) bool {
 				if !b {
 					fmt.Println("二次比较失败！")
 					equal = false
+					if detail {
+						folder := "./result/"
+						os.Mkdir(folder, os.ModePerm)
+						ioutil.WriteFile(folder + strconv.Itoa(int(offset1)) + "_src", buff1[:n1], os.ModePerm)
+						ioutil.WriteFile(folder + strconv.Itoa(int(offset2)) + "_dst", buff2[:n2], os.ModePerm)
+					}
 				}
 				continue
 			}
@@ -89,6 +100,9 @@ func CompareFile(file1, file2 string) bool {
 				break
 			}
 		}
+
+		f1.Close()
+		f2.Close()
 	}
 
 	return equal
